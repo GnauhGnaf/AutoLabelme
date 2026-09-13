@@ -1,0 +1,11 @@
+# conda env "gpu"  (Python 3.10)
+# runs: pipeline/coarse_seg.py (stage 1) and pipeline/masks_to_labelme.py (stage 4)
+#
+# torch/torchvision come from the CUDA wheel index, not PyPI:
+#   pip install torch==2.11.0 torchvision==0.26.0 --index-url https://download.pytorch.org/whl/cu128
+# (swap cu128 for your CUDA; use the CPU index if you have no GPU)
+numpy==2.2.6
+opencv-python==4.13.0.92
+pillow==12.2.0
+torch==2.11.0+cu128
+torchvision==0.26.0+cu128
