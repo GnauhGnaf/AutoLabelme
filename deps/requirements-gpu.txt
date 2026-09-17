@@ -1,11 +1,28 @@
 # conda env "gpu"  (Python 3.10)
-# runs: pipeline/coarse_seg.py (stage 1) and pipeline/masks_to_labelme.py (stage 4)
+# Runs all four stages: coarse_seg.py, select_targets.py, sam2_masks.py,
+# masks_to_labelme.py. The SAM2.1 / osam (onnxruntime) stack lives here too, so
+# a single env covers the whole pipeline.
 #
 # torch/torchvision come from the CUDA wheel index, not PyPI:
 #   pip install torch==2.11.0 torchvision==0.26.0 --index-url https://download.pytorch.org/whl/cu128
 # (swap cu128 for your CUDA; use the CPU index if you have no GPU)
+
+# stage 1 & 4
 numpy==2.2.6
 opencv-python==4.13.0.92
 pillow==12.2.0
 torch==2.11.0+cu128
 torchvision==0.26.0+cu128
+
+# stage 3 - SAM2.1 via osam / onnxruntime. osam is a plain PyPI package (no torch
+# needed); the ONNX weights are downloaded at runtime, see the "SAM2 model
+# download" section of ../README.md
+osam==0.2.5
+onnxruntime==1.19.2
+
+# osam transitive deps, pinned to the versions this pipeline was verified on
+click==8.4.2
+gdown==6.0.0
+imgviz==1.7.6
+loguru==0.7.3
+pydantic==2.13.4

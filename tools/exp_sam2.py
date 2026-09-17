@@ -1,5 +1,5 @@
 """Experiment: compare SAM2 prompt configs for refining coarse instances, scored by IoU vs GT.
-Runs entirely in the labelme env (PIL rasterization, no cv2).
+Runs entirely in the gpu env (PIL rasterization, no cv2).
 
   python exp_sam2.py <coarse.json> <image> <gt_labelme.json> [model]
 """

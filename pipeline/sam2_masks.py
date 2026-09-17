@@ -1,10 +1,10 @@
-"""Step B (labelme env): SAM2.1 box-prompt refine of the selected targets.
+"""Step B (gpu env): SAM2.1 box-prompt refine of the selected targets.
 
 Best config from exp_sam2.py: box-only prompt using the TIGHT box, labels [2,3].
 Guard: for detector targets, if SAM2 disagrees with the coarse ref mask (IoU < fallback_iou),
 keep the ref mask instead (manual targets have a rectangle ref, so the guard is skipped).
 
-  labelme env: python sam2_masks.py <targets.json> <ref.npz> <image> <out_prefix> [model] [fallback_iou]
+  gpu env: python sam2_masks.py <targets.json> <ref.npz> <image> <out_prefix> [model] [fallback_iou]
 """
 import sys, json
 import numpy as np

@@ -16,8 +16,7 @@
   output/              输出 - 生成的 labelme json  (<id>.json) + 叠加预览图 (<id>_ov.png)
   run.sh               运行脚本: input/ -> output/
   deps/
-    requirements-gpu.txt      环境 "gpu"      (Python 3.10) - 阶段 1 和 4
-    requirements-labelme.txt  环境 "labelme"  (Python 3.9)  - 阶段 3
+    requirements-gpu.txt      环境 "gpu"  (Python 3.10) - 全部四个阶段
   pipeline/
     coarse_seg.py        阶段 1 - COCO Mask R-CNN 粗掩码
     select_targets.py    阶段 2 - 选出人物 + 手持物 + 背景实体
@@ -40,25 +39,21 @@
 
 ## 安装
 
-两个 conda 环境，各自一个 pin 文件：
+单个 conda 环境 `gpu` 即可跑全部四个阶段：
 
 ```bash
 conda create -n gpu python=3.10 -y && conda activate gpu
 pip install torch==2.11.0 torchvision==0.26.0 --index-url https://download.pytorch.org/whl/cu128
 pip install -r deps/requirements-gpu.txt
-
-conda create -n labelme python=3.9 -y && conda activate labelme
-pip install -r deps/requirements-labelme.txt
 ```
 
 （把 `cu128` 换成你的 CUDA 版本，或改用 CPU wheel 源。阶段 1 在 CPU 上也能跑，
-只是慢一些。）
+只是慢一些；阶段 3 无论如何都是 onnxruntime 的 CPU 推理。）
 
-`run.sh` 默认调用 `conda run -n gpu` / `conda run -n labelme`。如果你不用 conda，
-可直接指定解释器：
+`run.sh` 默认调用 `conda run -n gpu`。如果你不用 conda，可直接指定解释器：
 
 ```bash
-GPU_PY=/path/to/gpu/python LME_PY=/path/to/labelme/python bash run.sh
+PY=/path/to/python bash run.sh
 ```
 
 全部为本地推理——无需 API key。唯一的联网行为是下面的一次性模型下载。
@@ -79,8 +74,8 @@ GPU_PY=/path/to/gpu/python LME_PY=/path/to/labelme/python bash run.sh
 可以提前拉取（需要联网），或者直接让第一次 `run.sh` 去下载：
 
 ```bash
-conda run -n labelme python -m osam pull sam2:latest
-conda run -n labelme python -m osam list      # 查看已缓存内容
+conda run -n gpu python -m osam pull sam2:latest
+conda run -n gpu python -m osam list      # 查看已缓存内容
 ```
 
 同一 release 里的其它尺寸，用 `MODEL=... bash run.sh` 切换：

@@ -18,8 +18,7 @@ step that keeps people + held objects + a couple of background entities, SAM2.1
   output/              OUTPUT - generated labelme jsons  (<id>.json) + overlay (<id>_ov.png)
   run.sh               runner: input/ -> output/
   deps/
-    requirements-gpu.txt      env "gpu"      (Python 3.10) - stages 1 & 4
-    requirements-labelme.txt  env "labelme"  (Python 3.9)  - stage 3
+    requirements-gpu.txt      env "gpu"  (Python 3.10) - all four stages
   pipeline/
     coarse_seg.py        stage 1 - COCO Mask R-CNN coarse masks
     select_targets.py    stage 2 - pick persons + held objects + bg entities
@@ -42,25 +41,22 @@ Image ids are the file stem: `input/0486.png` -> `output/0486.json`.
 
 ## Install
 
-Two conda envs, each with its own pin file:
+One conda env, `gpu`, covers all four stages:
 
 ```bash
 conda create -n gpu python=3.10 -y && conda activate gpu
 pip install torch==2.11.0 torchvision==0.26.0 --index-url https://download.pytorch.org/whl/cu128
 pip install -r deps/requirements-gpu.txt
-
-conda create -n labelme python=3.9 -y && conda activate labelme
-pip install -r deps/requirements-labelme.txt
 ```
 
 (Swap `cu128` for your CUDA version, or use the CPU wheel index. Stage 1 works
-on CPU, just slower.)
+on CPU, just slower. Stage 3 runs SAM2.1 on CPU via onnxruntime either way.)
 
-`run.sh` defaults to `conda run -n gpu` / `conda run -n labelme`. If you don't use
-conda, point it at your interpreters instead:
+`run.sh` defaults to `conda run -n gpu`. If you don't use conda, point it at your
+interpreter instead:
 
 ```bash
-GPU_PY=/path/to/gpu/python LME_PY=/path/to/labelme/python bash run.sh
+PY=/path/to/python bash run.sh
 ```
 
 All inference is local — no API keys. The only network use is the one-time model
@@ -82,8 +78,8 @@ The default model `sam2:latest` is **SAM2.1 base_plus** — two files:
 Pull them up front (needs network) or just let the first `run.sh` fetch them:
 
 ```bash
-conda run -n labelme python -m osam pull sam2:latest
-conda run -n labelme python -m osam list      # what's cached
+conda run -n gpu python -m osam pull sam2:latest
+conda run -n gpu python -m osam list      # what's cached
 ```
 
 Other sizes from the same release, selected with `MODEL=... bash run.sh`:
