@@ -4,7 +4,7 @@ row with `${name}` labels.  One Read of the montage gives expression + race
 for all persons at once.
 
 Usage:  python faces_montage.py <id>            e.g. python faces_montage.py 0004
-In:     output/<id>.json + input/<id>.png   (relative to the label/ dir)
+In:     output/<id>.json + input/<id>.<ext>   (relative to the label/ dir)
 Out:    tools/<id>_faces.png
 """
 import json
@@ -16,6 +16,8 @@ import numpy as np
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(BASE)  # the label/ directory
+sys.path.insert(0, os.path.join(ROOT, "pipeline"))
+import entities as E  # noqa: E402 - needs ROOT on sys.path first
 
 
 def head_box(pts):
@@ -34,7 +36,7 @@ def main():
     iid = sys.argv[1]
     j = json.load(open(os.path.join(ROOT, 'output', f'{iid}.json'),
                        encoding='utf-8'))
-    img = cv2.imread(os.path.join(ROOT, 'input', f'{iid}.png'))
+    img = E.load_bgr(E.find_input(ROOT, iid))
     persons = [s for s in j['shapes'] if s['label'].startswith('person')]
     tiles = []
     TILE = 240

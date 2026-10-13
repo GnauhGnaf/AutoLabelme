@@ -13,6 +13,9 @@ import sys, os, json
 import numpy as np
 import cv2
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import entities as E  # noqa: E402 - same directory
+
 # COCO class -> output name. Bags keep the GT convention 'bag'.
 PORTABLE = {
     "handbag": "bag", "backpack": "bag", "suitcase": "bag",
@@ -46,12 +49,27 @@ def tight_box(mask):
     return [float(xs.min()), float(ys.min()), float(xs.max()), float(ys.max())]
 
 
-def main():
-    coarse_prefix, out_prefix = sys.argv[1], sys.argv[2]
-    extras_path = sys.argv[3] if len(sys.argv) > 3 else None
+def load_coarse(coarse):
+    """(masks, instances) from either <prefix> or a coarse_seg.run() result."""
+    if isinstance(coarse, (str, bytes, os.PathLike)):
+        masks = np.load(str(coarse) + "_masks.npz")["masks"]
+        inst = json.load(open(str(coarse) + "_inst.json"))["instances"]
+        return masks, inst
+    return coarse["masks"], coarse["instances"]
 
-    masks = np.load(coarse_prefix + "_masks.npz")["masks"]
-    inst = json.load(open(coarse_prefix + "_inst.json"))["instances"]
+
+def run(coarse, out_prefix=None, extras_path=None, dump=True, verbose=True):
+    """Pick the annotation targets for one frame: every person + every held object.
+
+    ``coarse`` is a coarse_seg prefix (CLI) or a coarse_seg.run() dict (video driver).
+    Returns {"targets", "refs", "height", "width"}; ``refs`` is the (N, H, W) coarse mask
+    stack SAM2 is guarded against. ``verbose`` off keeps 124 frames of per-candidate
+    logging out of the driver's stdout - the per-frame summary the driver prints instead
+    carries the same numbers.
+    """
+    say = print if verbose else (lambda *a, **k: None)
+
+    masks, inst = load_coarse(coarse)
     H, W = masks.shape[1:]
 
     person = np.any([m for m, it in zip(masks, inst) if it["label"] == "person"], axis=0) \
@@ -94,7 +112,7 @@ def main():
         else:
             accepted.append(k)
     if drop:
-        print(f"  - dropped {len(drop)} duplicate portable detection(s)")
+        say(f"  - dropped {len(drop)} duplicate portable detection(s)")
         targets = [t for k, t in enumerate(targets) if k not in drop]
         refs = [r for k, r in enumerate(refs) if k not in drop]
 
@@ -121,9 +139,9 @@ def main():
         targets.append({"name": BG_NAME[lab], "box": tight_box(m), "src": "bg",
                         "score": None, "note": f'coco={lab} area={area}'})
         refs.append(m)
-        print(f'  * bg {BG_NAME[lab]:10s} coco={lab:14s} area={area}')
+        say(f'  * bg {BG_NAME[lab]:10s} coco={lab:14s} area={area}')
     if len(picked) < BG_TOPN:
-        print(f"  ! only {len(picked)} auto background candidate(s) (need {BG_TOPN})")
+        say(f"  ! only {len(picked)} auto background candidate(s) (need {BG_TOPN})")
 
     if extras_path and os.path.exists(extras_path):
         data = json.load(open(extras_path))
@@ -138,7 +156,7 @@ def main():
         keep = [k for k, t in enumerate(targets)
                 if not any(d in t["note"] for d in drops) and not in_any_box(t)]
         if len(keep) != len(targets):
-            print(f"  - dropped {len(targets) - len(keep)} false targets (coco={sorted(drops)}, boxes={len(drop_boxes)})")
+            say(f"  - dropped {len(targets) - len(keep)} false targets (coco={sorted(drops)}, boxes={len(drop_boxes)})")
         targets, refs = [targets[k] for k in keep], [refs[k] for k in keep]
 
         renames = {}
@@ -147,7 +165,7 @@ def main():
         for t in targets:
             for coco, newname in renames.items():
                 if f"coco={coco}" in t["note"]:
-                    print(f'  ~ renamed {t["name"]} -> {newname} (coco={coco})')
+                    say(f'  ~ renamed {t["name"]} -> {newname} (coco={coco})')
                     t["name"] = newname
         for e in data:
             if not e.get("box"):
@@ -159,14 +177,25 @@ def main():
                             "src": "bg" if e.get("bg") else "manual",
                             "score": None, "note": e.get("note", "")})
             refs.append(ref)
-            print(f'  + manual {e["label"]:12s} box={e["box"]}')
+            say(f'  + manual {e["label"]:12s} box={e["box"]}')
 
-    print("portable candidates:")
-    print("\n".join(log) if log else "  (none)")
-    json.dump(targets, open(out_prefix + "_targets.json", "w"), indent=1)
-    np.savez_compressed(out_prefix + "_ref.npz", refs=np.array(refs, dtype=bool) if refs else np.zeros((0, H, W), bool))
-    names = [t["name"] for t in targets]
-    print(f"targets={len(targets)}: {names}")
+    say("portable candidates:")
+    say("\n".join(log) if log else "  (none)")
+
+    res = {"targets": targets,
+           "refs": np.array(refs, dtype=bool) if refs else np.zeros((0, H, W), bool),
+           "height": H, "width": W}
+    if dump and out_prefix:
+        json.dump(targets, open(out_prefix + "_targets.json", "w"), indent=1)
+        np.savez_compressed(out_prefix + "_ref.npz", refs=res["refs"])
+    print(f"targets={len(targets)}: {[t['name'] for t in targets]}")
+    return res
+
+
+def main():
+    coarse_prefix, out_prefix = sys.argv[1], sys.argv[2]
+    extras_path = sys.argv[3] if len(sys.argv) > 3 else None
+    run(coarse_prefix, out_prefix, extras_path)
 
 
 if __name__ == "__main__":

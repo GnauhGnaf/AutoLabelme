@@ -1,0 +1,324 @@
+{
+ "video": "pi-image-scene.mp4",
+ "source_frames": 124,
+ "fps": 24.0,
+ "stride": 8,
+ "sampled_frames": 16,
+ "model": "sam2:latest",
+ "params": {
+  "MIN_HITS": 3,
+  "LOST_MAX": 24,
+  "REID_SIM": 0.75,
+  "IOU_GATE": 0.3,
+  "DIST_GATE": 0.1,
+  "MERGE_SIM": 0.85,
+  "CROSS_SIM": 0.8
+ },
+ "tentative_tracks_dropped": 12,
+ "tracks": [
+  {
+   "label": "bag1",
+   "class": "bag",
+   "first_frame": 0,
+   "last_frame": 120,
+   "n_samples": 13,
+   "gaps": [
+    [
+     72,
+     96
+    ],
+    [
+     96,
+     112
+    ]
+   ]
+  },
+  {
+   "label": "bag2",
+   "class": "bag",
+   "first_frame": 0,
+   "last_frame": 120,
+   "n_samples": 16,
+   "gaps": []
+  },
+  {
+   "label": "bag3",
+   "class": "bag",
+   "first_frame": 0,
+   "last_frame": 120,
+   "n_samples": 6,
+   "gaps": [
+    [
+     32,
+     120
+    ]
+   ]
+  },
+  {
+   "label": "bag4",
+   "class": "bag",
+   "first_frame": 0,
+   "last_frame": 120,
+   "n_samples": 16,
+   "gaps": []
+  },
+  {
+   "label": "bag5",
+   "class": "bag",
+   "first_frame": 0,
+   "last_frame": 120,
+   "n_samples": 16,
+   "gaps": []
+  },
+  {
+   "label": "bag6",
+   "class": "bag",
+   "first_frame": 8,
+   "last_frame": 120,
+   "n_samples": 15,
+   "gaps": []
+  },
+  {
+   "label": "book1",
+   "class": "book",
+   "first_frame": 0,
+   "last_frame": 120,
+   "n_samples": 13,
+   "gaps": [
+    [
+     64,
+     88
+    ],
+    [
+     88,
+     104
+    ]
+   ]
+  },
+  {
+   "label": "book2",
+   "class": "book",
+   "first_frame": 0,
+   "last_frame": 104,
+   "n_samples": 14,
+   "gaps": []
+  },
+  {
+   "label": "book3",
+   "class": "book",
+   "first_frame": 40,
+   "last_frame": 120,
+   "n_samples": 4,
+   "gaps": [
+    [
+     48,
+     112
+    ]
+   ]
+  },
+  {
+   "label": "chair1",
+   "class": "chair",
+   "first_frame": 0,
+   "last_frame": 104,
+   "n_samples": 9,
+   "gaps": [
+    [
+     40,
+     56
+    ],
+    [
+     64,
+     104
+    ]
+   ]
+  },
+  {
+   "label": "clock1",
+   "class": "clock",
+   "first_frame": 48,
+   "last_frame": 112,
+   "n_samples": 6,
+   "gaps": [
+    [
+     48,
+     72
+    ],
+    [
+     96,
+     112
+    ]
+   ]
+  },
+  {
+   "label": "laptop1",
+   "class": "laptop",
+   "first_frame": 16,
+   "last_frame": 120,
+   "n_samples": 10,
+   "gaps": [
+    [
+     16,
+     40
+    ],
+    [
+     72,
+     96
+    ]
+   ]
+  },
+  {
+   "label": "person1",
+   "class": "person",
+   "first_frame": 0,
+   "last_frame": 16,
+   "n_samples": 3,
+   "gaps": []
+  },
+  {
+   "label": "person2",
+   "class": "person",
+   "first_frame": 0,
+   "last_frame": 120,
+   "n_samples": 16,
+   "gaps": []
+  },
+  {
+   "label": "person3",
+   "class": "person",
+   "first_frame": 0,
+   "last_frame": 120,
+   "n_samples": 16,
+   "gaps": []
+  },
+  {
+   "label": "person4",
+   "class": "person",
+   "first_frame": 0,
+   "last_frame": 120,
+   "n_samples": 16,
+   "gaps": []
+  },
+  {
+   "label": "person5",
+   "class": "person",
+   "first_frame": 0,
+   "last_frame": 120,
+   "n_samples": 16,
+   "gaps": []
+  },
+  {
+   "label": "person6",
+   "class": "person",
+   "first_frame": 0,
+   "last_frame": 120,
+   "n_samples": 16,
+   "gaps": []
+  },
+  {
+   "label": "person7",
+   "class": "person",
+   "first_frame": 0,
+   "last_frame": 120,
+   "n_samples": 16,
+   "gaps": []
+  },
+  {
+   "label": "person8",
+   "class": "person",
+   "first_frame": 0,
+   "last_frame": 120,
+   "n_samples": 16,
+   "gaps": []
+  },
+  {
+   "label": "person9",
+   "class": "person",
+   "first_frame": 0,
+   "last_frame": 120,
+   "n_samples": 16,
+   "gaps": []
+  },
+  {
+   "label": "person10",
+   "class": "person",
+   "first_frame": 0,
+   "last_frame": 120,
+   "n_samples": 16,
+   "gaps": []
+  },
+  {
+   "label": "person11",
+   "class": "person",
+   "first_frame": 0,
+   "last_frame": 120,
+   "n_samples": 16,
+   "gaps": []
+  },
+  {
+   "label": "phone1",
+   "class": "phone",
+   "first_frame": 0,
+   "last_frame": 120,
+   "n_samples": 16,
+   "gaps": []
+  },
+  {
+   "label": "phone2",
+   "class": "phone",
+   "first_frame": 0,
+   "last_frame": 120,
+   "n_samples": 16,
+   "gaps": []
+  },
+  {
+   "label": "plant1",
+   "class": "plant",
+   "first_frame": 0,
+   "last_frame": 120,
+   "n_samples": 16,
+   "gaps": []
+  },
+  {
+   "label": "remote1",
+   "class": "remote",
+   "first_frame": 0,
+   "last_frame": 120,
+   "n_samples": 13,
+   "gaps": [
+    [
+     16,
+     32
+    ],
+    [
+     32,
+     48
+    ],
+    [
+     72,
+     88
+    ]
+   ]
+  },
+  {
+   "label": "remote2",
+   "class": "remote",
+   "first_frame": 24,
+   "last_frame": 96,
+   "n_samples": 6,
+   "gaps": [
+    [
+     56,
+     96
+    ]
+   ]
+  }
+ ],
+ "events": [
+  {
+   "frame": 16,
+   "kind": "merge",
+   "message": "laptop#27 + book#29 -> one entity (appearance 0.99, spans -9 samples apart, 0px apart, classes laptop/book)"
+  }
+ ]
+}

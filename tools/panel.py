@@ -3,7 +3,7 @@ plus a printed shape list (labels + bboxes + centroid) so object ids can be
 assigned without a second parse call.
 
 Usage:  python panel.py <id>        e.g. python panel.py 0012
-In:     output/<id>.json + input/<id>.png   (relative to the label/ dir)
+In:     output/<id>.json + input/<id>.<ext>   (relative to the label/ dir)
 Out:    tools/<id>_panel.png
 """
 import json
@@ -15,6 +15,8 @@ import numpy as np
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(BASE)  # the label/ directory
+sys.path.insert(0, os.path.join(ROOT, "pipeline"))
+import entities as E  # noqa: E402 - needs ROOT on sys.path first
 
 W = 1440
 TILE = 240
@@ -35,7 +37,7 @@ def main():
     iid = sys.argv[1]
     j = json.load(open(os.path.join(ROOT, 'output', f'{iid}.json'),
                        encoding='utf-8'))
-    img = cv2.imread(os.path.join(ROOT, 'input', f'{iid}.png'))
+    img = E.load_bgr(E.find_input(ROOT, iid))
     H, Wimg = img.shape[:2]
 
     for s in j['shapes']:

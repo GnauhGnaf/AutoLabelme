@@ -2,18 +2,25 @@
 
 - Drops background targets whose refined mask still overlaps people a lot (leaky masks).
 - Keeps at most 2 background entities (largest by mask area).
+- Collapses duplicate masks for the same physical object (entities.dedup).
 - Naming: '<class><n>', n assigned left-to-right by centroid x, per class.
+- Overlay goes to the sibling ov/ directory: output/0486.json -> output/ov/0486.png
 
   gpu env: python masks_to_labelme.py <prefix>_masks.npz <prefix>_masks.json <image> <out.json> [eps]
 """
-import sys, json, base64
-import numpy as np
+import json
+import sys
+
 import cv2
-import colorsys
-from PIL import Image, ImageDraw, ImageFont
+import numpy as np
+from PIL import Image
+
+import entities as E
 
 BG_MAX = 2
 BG_PERSON_OVERLAP = 0.30
+# How much the coarse/'bg' provenance matters when picking a survivor among duplicates.
+SRC_PRIORITY = {"manual": 3, "det": 2, "bg": 1}
 
 
 def polygonize(mask, eps, bridge=False):
@@ -38,14 +45,35 @@ def polygonize(mask, eps, bridge=False):
     return cv2.approxPolyDP(c, eps, True).reshape(-1, 2).tolist()
 
 
-def main():
-    npz, metaj, img_path, out_path = sys.argv[1:5]
-    eps = float(sys.argv[5]) if len(sys.argv) > 5 else 1.0
+def trust(md):
+    """How much we trust a refined mask, used to choose the survivor among duplicates.
 
-    masks = np.load(npz)["masks"]
-    meta = json.load(open(metaj))
-    im = Image.open(img_path).convert("RGB")
-    W, H = im.size
+    A SAM2-refined 'det' mask beats a mask that fell back to the coarse one, which beats
+    a background entity; ties break on the SAM2/coarse agreement, then on area via
+    entities._rank.
+    """
+    refined = 0.0 if md.get("used") == "coarse" else 1.0
+    return SRC_PRIORITY.get(md.get("src"), 0) * 10 + refined + (md.get("sam_iou_vs_ref") or 0.0)
+
+
+def build_items(masks, meta, eps=1.0, verbose=True):
+    """Background gating -> polygonize -> within-frame dedup.
+
+    Returns [{"name", "mask", "points"}] for one frame. Naming is deliberately NOT done
+    here: the still-image path names by centroid (``order_shapes`` with labels=None), while
+    the video path names from the tracker so an identity outlives the frame. Both consume
+    this list, which is why the gate and the dedup live in one place.
+
+    Polygonize runs BEFORE dedup, and the emitted ``mask`` is the polygon rasterized back.
+    That ordering is the fix for a real miss: polygonize keeps only the largest contour, so
+    it changes how much two entities overlap. Deduping raw masks first let a single bag out
+    twice - the detector's bag+strap mask (a coarse fallback) and the SAM2 bag-body mask
+    were 0.79 contained as masks but 0.92 as polygons, straddling the 0.85 threshold. The
+    polygon is what gets named and delivered, so the polygon is what dedup must judge; the
+    tracker then matches on exactly the geometry the JSON contains.
+    """
+    say = print if verbose else (lambda *a, **k: None)
+    H, W = masks.shape[1:]
 
     person = np.any([m for m, md in zip(masks, meta) if md["name"] == "person"], axis=0) \
         if any(md["name"] == "person" for md in meta) else np.zeros((H, W), bool)
@@ -57,59 +85,46 @@ def main():
         m = masks[k]
         ov = float(np.logical_and(m, person).sum()) / max(1, int(m.sum()))
         if ov > BG_PERSON_OVERLAP:
-            print(f'  x bg {meta[k]["name"]}: dropped (person overlap {ov:.2f})')
+            say(f'  x bg {meta[k]["name"]}: dropped (person overlap {ov:.2f})')
             continue
         good_bg.append((int(m.sum()), k))
     good_bg.sort(reverse=True)
     keep_bg = {k for _, k in good_bg[:BG_MAX]}
     for area, k in good_bg[BG_MAX:]:
-        print(f'  x bg {meta[k]["name"]}: dropped (not among top {BG_MAX} by area={area})')
+        say(f'  x bg {meta[k]["name"]}: dropped (not among top {BG_MAX} by area={area})')
 
-    items = []
-    for k, (m, md) in enumerate(zip(masks, meta)):
+    cand = []
+    for k, md in enumerate(meta):
         if md["src"] == "bg" and k not in keep_bg:
             continue
-        poly = polygonize(m, eps, bridge=(md["name"] == "person"))
-        if poly:
-            items.append({"name": md["name"], "points": poly})
+        poly = polygonize(masks[k], eps, bridge=(md["name"] == "person"))
+        if not poly:
+            continue          # too small to be a polygon, so it can never be a shape
+        cand.append({"name": md["name"], "mask": E.rasterize(poly, W, H),
+                     "score": trust(md), "points": poly})
 
-    shapes = []
-    for cls in sorted({it["name"] for it in items}, key=lambda c: (c != "person", c)):
-        group = sorted([it for it in items if it["name"] == cls],
-                       key=lambda it: np.mean([p[0] for p in it["points"]]))
-        for n, it in enumerate(group, 1):
-            shapes.append({"label": f"{cls}{n}", "points": it["points"]})
+    # collapse candidates that describe the same physical object
+    keep, dropped = E.dedup(cand)
+    for i, best, why in dropped:
+        say(f'  x dup {cand[i]["name"]}: dropped ({why})')
+    return [cand[i] for i in keep]
 
-    b64 = base64.b64encode(open(img_path, "rb").read()).decode()
-    json.dump({
-        "version": "5.10.1", "flags": {},
-        "shapes": [{"label": s["label"], "points": [[round(x, 1), round(y, 1)] for x, y in s["points"]],
-                    "group_id": None, "description": "", "shape_type": "polygon", "flags": {}, "mask": None}
-                   for s in shapes],
-        "imagePath": img_path.replace("\\", "/").split("/")[-1],
-        "imageData": b64, "imageHeight": H, "imageWidth": W,
-    }, open(out_path, "w"), indent=2)
 
-    ov = im.convert("RGBA")
-    lay = Image.new("RGBA", im.size, (0, 0, 0, 0))
-    dr = ImageDraw.Draw(lay)
-    cols = {}
-    for i, s in enumerate(shapes):
-        cols[s["label"]] = tuple(int(v * 255) for v in colorsys.hsv_to_rgb(i / max(1, len(shapes)), 0.78, 0.95))
-        dr.polygon([tuple(p) for p in s["points"]], fill=cols[s["label"]] + (105,), outline=cols[s["label"]] + (255,))
-    ov = Image.alpha_composite(ov, lay)
-    dr = ImageDraw.Draw(ov)
-    try:
-        font = ImageFont.truetype("arial.ttf", 26)
-    except Exception:
-        font = ImageFont.load_default()
-    for s in shapes:
-        p = np.array(s["points"], float)
-        cx, cy = p[:, 0].mean(), p[:, 1].min()
-        dr.rectangle([cx - 2, cy - 30, cx + 8 + 13 * len(s["label"]), cy - 2], fill=cols[s["label"]] + (235,))
-        dr.text((cx + 2, cy - 29), s["label"], fill=(0, 0, 0, 255), font=font)
-    ov.convert("RGB").save(out_path.replace(".json", "_ov.png"))
+def run(masks, meta, img_path, out_path, eps=1.0, verbose=True):
+    """Still-image path: build_items -> centroid naming -> labelme json + ov/ preview."""
+    im = Image.open(img_path).convert("RGB")
+    items = build_items(masks, meta, eps, verbose)
+    shapes = E.order_shapes(items)
+    E.write_labelme(im, img_path, shapes, out_path)
+    E.render_overlay(im, shapes, E.ov_path(out_path))
     print(f"wrote {out_path}: {[s['label'] for s in shapes]}")
+    return shapes
+
+
+def main():
+    npz, metaj, img_path, out_path = sys.argv[1:5]
+    eps = float(sys.argv[5]) if len(sys.argv) > 5 else 1.0
+    run(np.load(npz)["masks"], json.load(open(metaj)), img_path, out_path, eps)
 
 
 if __name__ == "__main__":

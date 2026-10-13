@@ -3,23 +3,23 @@ Matching is by highest overlap (greedy), independent of the numbering order.
 
 Usage: eval_iou.py <pred.json> <gt.json>
 """
-import sys, json
+import json
+import os
+import sys
+
 import numpy as np
-from PIL import Image, ImageDraw
 
-
-def raster(shape, W, H):
-    m = Image.new("1", (W, H), 0)
-    ImageDraw.Draw(m).polygon([tuple(p) for p in shape["points"]], fill=1)
-    return np.array(m, dtype=bool)
+BASE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.join(os.path.dirname(BASE), "pipeline"))
+from entities import rasterize  # noqa: E402 - needs the pipeline dir on sys.path first
 
 
 def main():
     pred = json.load(open(sys.argv[1]))
     gt = json.load(open(sys.argv[2]))
     W, H = gt["imageWidth"], gt["imageHeight"]
-    pm = {s["label"]: raster(s, W, H) for s in pred["shapes"]}
-    gm = {s["label"]: raster(s, W, H) for s in gt["shapes"]}
+    pm = {s["label"]: rasterize(s["points"], W, H) for s in pred["shapes"]}
+    gm = {s["label"]: rasterize(s["points"], W, H) for s in gt["shapes"]}
     print(f"{'GT':8s} {'best pred':10s} {'IoU':>6s}")
     ious = []
     for gl, g in gm.items():

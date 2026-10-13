@@ -1,3 +1,12 @@
 _out/
 __pycache__/
 *.pyc
+
+# Video runs. Each frame json embeds its frame as base64, so a 124-frame clip is
+# ~235 MB of output; that cannot go in a repo. The entity table is kept, because it
+# is small and is the record of every identity decision:
+#   output/<stem>/tracks.json
+# Everything it indexes has to be regenerated with run_video.sh.
+output/*/frames/
+output/*/ov/
+output/*/preview.mp4
