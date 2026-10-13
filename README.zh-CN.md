@@ -170,6 +170,9 @@ MODEL=sam2:small bash run_video.sh clip.mp4
 参数可以是路径、纯文件名，或者只给主干名（会去 `input/` 里找）。不给参数时，
 处理仓库根目录下所有视频。
 
+上面的 `pi-image-scene.mp4` 是开发时用的那段片子，它不在仓库里（视频文件已
+gitignore）。请把它换成你自己的视频。
+
 整个设计由两条要求驱动，而且两条都由**代码**检查，不靠肉眼看：
 
 1. **一个实体在整段视频里只有一个名称。** 第 0 帧的 `person1` 和第 123 帧的
@@ -199,9 +202,10 @@ stride 不为 1 时会带上 `-s<N>` 后缀（`output/pi-image-scene-s8/`），�
 `000008.json`…… 直接就能对应到片子里去定位。抽帧走 cv2，**不需要**外部
 `ffmpeg` 可执行文件。
 
-帧 JSON 会把整帧以 base64 内嵌，所以 124 帧的产物约 235 MB；因此 `.gitignore`
-只保留 `tracks.json`（体积小，且是每一次身份判定的凭据），`frames/`、`ov/` 与
-`preview.mp4` 需要由 `run_video.sh` 重新生成。图片路径的 `output/ov/` 不受影响。
+这些产物都不提交，示例视频本身也不提交。帧 JSON 会把整帧以 base64 内嵌，124 帧
+的产物约 235 MB，视频文件本身也不小；因此 `.gitignore` 排除了视频文件以及每一个
+`output/<stem>/` 目录，整次运行都由 `run_video.sh` 重新生成。图片路径的
+`output/<id>.json` 与 `output/ov/` 不受影响——`ov/` 被反向排除保留了下来。
 
 `tracks.json` 是可审计的凭据：
 
