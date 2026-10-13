@@ -10,3 +10,6 @@ __pycache__/
 output/*/frames/
 output/*/ov/
 output/*/preview.mp4
+
+# One-off batch fixups for a specific delivered run (see tmp/). Not pipeline code.
+tmp/
